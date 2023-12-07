@@ -8,7 +8,8 @@ def train_single_model(gpu,datasetID,resolution,fold):
     print('command to run:',cmd)
     os.system(cmd)
 
-def nnunet_train_shell(root: str,
+def nnunet_train_shell(datasetID,
+                       root: str,
                        conda_env: str,
                        gpu_res_fold_dct: dict = None, #is created with utils function assign_to_gpu
                        version=2):
