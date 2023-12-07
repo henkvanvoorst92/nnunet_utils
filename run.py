@@ -44,7 +44,7 @@ def nnunet_train_shell(datasetID,
         for gpu, data in gpu_res_fold_dct.items():
             for [resolution, fold] in data:
                 f.writelines(
-                    f'CUDA_VISIBLE_DEVICES={gpu} nnUNetv2_train {datasetID} {resolution} {fold} [--npz] &\n')
+                    f'CUDA_VISIBLE_DEVICES={gpu} nnUNetv2_train {datasetID} {resolution} {fold} --npz &\n')
 
         f.writelines("wait")
     return job_file
