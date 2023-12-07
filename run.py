@@ -1,6 +1,6 @@
 
 import os
-from utils import write_envlines_nnunet
+from .utils import write_envlines_nnunet
 
 #code for single training single fold
 def train_single_model(gpu,datasetID,resolution,fold):
@@ -46,4 +46,5 @@ def nnunet_train_shell(root: str,
                     f'CUDA_VISIBLE_DEVICES={gpu} nnUNetv2_train {datasetID} {resolution} {fold} [--npz] &\n')
 
         f.writelines("wait")
+    return job_file
 
