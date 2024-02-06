@@ -59,6 +59,27 @@ def assign_to_gpus(num_gpus,
 
     return gpu_assignments
 
+def copy_inference_image(path_image_in, folder_image_out):
+    ID = path_image_in.split(os.sep)[-2]
+
+    if not os.path.exists(folder_image_out):
+        os.makedirs(folder_image_out)
+
+    p_out = os.path.join(folder_image_out, ID + '_0000.nii.gz')
+    shutil.copy2(path_image_in, p_out)
+
+def copy_seg_to_original_folder(nnunet_seg_folder,original_folder,addname='-CTA_vesselseg'):
+    #copy nnunet segmentations back to original folder
+    for f in os.listdir(nnunet_seg_folder):
+        ID = f.split(".")[0]
+        pid = os.path.join(original_folder,ID)
+        if not os.path.exists(pid):
+            os.makedirs(pid)
+        f_nnunet = os.path.join(nnunet_seg_folder, f)
+        f_original = os.path.join(pid,'{}{}.nii.gz'.format(ID, addname))
+        shutil.copy2(f_nnunet,f_original)
+    return
+
 #
 # def assign_folds_to_gpus(num_folds, num_gpus):
 #     """

@@ -3,6 +3,7 @@ import os
 import numpy as np
 import SimpleITK as sitk
 from nnunetv2.dataset_conversion.generate_dataset_json import generate_dataset_json
+import shutil
 from .utils import set_env_nnunet, write_envlines_nnunet
 
 def write_as_nnunet(IMG, GT, p_dir, ID):
@@ -135,6 +136,35 @@ def preprocess_data(root: str,
 
     os.system(cmd_pp)
     print('finished preprocessing')
+
+
+def create_inference_data_from_folder(path_folder_in, path_folder_out, bounds=None):
+    for file in os.listdir(path_folder_in):
+        if not '.nii' in file:
+            continue
+        # creat in and out files and skip if out file exists
+        f = os.path.join(path_folder_in, file)
+        ID = file.split('.')[0]
+        file_out = ID + '_0000.nii.gz'
+        path_out = os.path.join(path_folder_out, file_out)
+        if os.path.exists(path_out):
+            continue
+        # write file out, create folder if it does not exist
+        if not os.path.exists(path_folder_out):
+            os.makedirs(path_folder_out)
+        create_inference_image(f, path_out, bounds=None)
+
+
+def create_inference_image(path_image_in, path_image_out, bounds=None):
+    # read image
+    img = sitk.ReadImage(path_image_in)
+    # preprocess image
+    img = sitk.Cast(img, sitk.sitkInt16)
+    if bounds is not None:
+        img = sitk.Clamp(img, lowerBound=bounds[0], upperBound=bounds[1])
+
+    sitk.WriteImage(img, path_image_out)
+
 
 
 
