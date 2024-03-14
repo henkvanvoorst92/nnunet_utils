@@ -2,8 +2,9 @@
 import os
 import numpy as np
 import SimpleITK as sitk
-from nnunetv2.dataset_conversion.generate_dataset_json import generate_dataset_json
+import nnunetv2
 import shutil
+
 from .utils import set_env_nnunet, write_envlines_nnunet
 
 def write_as_nnunet(IMG, GT, p_dir, ID):
@@ -23,9 +24,10 @@ def write_as_nnunet(IMG, GT, p_dir, ID):
             os.makedirs(p_gt_new)
         sitk.WriteImage(GT, os.path.join(p_gt_new, ID+'.nii.gz'))
 
+
 def nnunet_directory_structure(base_dir,
                                taskname=None,
-                               version:[str or int or float]=None):
+                               version: [str or int or float] = None):
     """
     Create the directory structure for nnU-Net.
 
@@ -50,11 +52,13 @@ def nnunet_directory_structure(base_dir,
     if version is None:
         version = 2
 
-    if version!=2:
-        #add old version file order
+    if version == 2:
+        paths.append(os.path.join("nnUNet_raw", taskname))
+    elif version != 2:
+        # add old version file order
         if taskname is None:
             taskname = "TaskXXX"
-        paths.append(os.path.join("nnUNet_raw/nnUNet_raw_data",taskname))
+        paths.append(os.path.join("nnUNet_raw/nnUNet_raw_data", taskname))
 
     for path in paths:
         p = os.path.join(base_dir, path)
@@ -78,7 +82,6 @@ def script_command(file,
     print('Script command defined:\n', command)
     return command
 
-
 def img_lbl_paircount(root_images: str, root_gt: str):
     img_IDs = [f.split('_')[0] for f in os.listdir(root_images)]
     gt_IDs = [f.split('.')[0] for f in os.listdir(root_gt)]
@@ -87,8 +90,8 @@ def img_lbl_paircount(root_images: str, root_gt: str):
     return int(np.isin(gt_IDs, img_IDs).sum())
 
 def preprocess_data(root: str,
-                    datano: [int or str or float],
-                    datasetID: str,
+                    datano: [int or str or float],  # 501
+                    datasetID: str,  # Dataset501_XXX
                     dataset_name: str,
                     modalities: list[str],
                     version: [int or str or float] = 2):
@@ -102,23 +105,25 @@ def preprocess_data(root: str,
     d_tr = os.path.join(p_data, 'imagesTr')
     d_lbl = os.path.join(p_data, 'labelsTr')
     num_tr = img_lbl_paircount(root_images=d_tr, root_gt=d_lbl)
-
+    print
     set_env_nnunet(root, version=version)
 
     if version >= 2:
-        generate_dataset_json(output_folder=p_data,
-                              num_training_cases=num_tr,
-                              channel_names={m: str(c) for c, m in enumerate(modalities)},  # 'synMRA'
-                              labels={'background': 0, 'foreground': 1},
-                              file_ending=".nii.gz",
-                              dataset_name=dataset_name,
-                              imagesTr_dir=d_tr,
-                              imagesTs_dir=None,
-                              # modalities=modalities,
-                              license='hands off!',
-                              dataset_description="dataset nnUnet",
-                              overwrite_image_reader_writer="SimpleITKIO"
-                              )
+        from nnunetv2.dataset_conversion import generate_dataset_json
+        generate_dataset_json.generate_dataset_json(
+                                    output_folder=p_data,
+                                    num_training_cases=num_tr,
+                                    channel_names={m: str(c) for c, m in enumerate(modalities)},  # 'synMRA'
+                                    labels={'background': 0, 'foreground': 1},
+                                    file_ending=".nii.gz",
+                                    dataset_name=dataset_name,
+                                    imagesTr_dir=d_tr,
+                                    imagesTs_dir=None,
+                                    # modalities=modalities,
+                                    license='hands off!',
+                                    dataset_description="dataset nnUnet",
+                                    overwrite_image_reader_writer="SimpleITKIO"
+                                )
         cmd_pp = 'nnUNetv2_plan_and_preprocess -d {} --verify_dataset_integrity'.format(datano)
 
     else:
@@ -136,7 +141,6 @@ def preprocess_data(root: str,
 
     os.system(cmd_pp)
     print('finished preprocessing')
-
 
 def create_inference_data_from_folder(path_folder_in, path_folder_out, bounds=None):
     for file in os.listdir(path_folder_in):

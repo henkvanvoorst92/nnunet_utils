@@ -1,6 +1,17 @@
 
 import os
 import shutil
+import numpy as np
+import SimpleITK as sitk
+
+def np2sitk(arr: np.ndarray, original_img: sitk.SimpleITK.Image):
+    img = sitk.GetImageFromArray(arr)
+    img.SetSpacing(original_img.GetSpacing())
+    img.SetOrigin(original_img.GetOrigin())
+    img.SetDirection(original_img.GetDirection())
+    # this does not allow cropping (such as removing thorax, neck)
+    #img.CopyInformation(original_img)
+    return img
 
 def set_env_nnunet(root: str, version=2):
     # set nnUnet environment path
@@ -45,6 +56,8 @@ def assign_to_gpus(num_gpus,
     # If num_gpus is an integer, convert it to a list of GPU IDs
     if isinstance(num_gpus, int):
         num_gpus = list(range(num_gpus))
+    else:
+        num_gpus = num_gpus #a list with the numbers for gpus to use
 
     job_counter = 0
     gpu_assignments = {gpu_id: [] for gpu_id in num_gpus}
