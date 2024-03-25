@@ -96,10 +96,10 @@ def nnunetv2_inference_shell(root: str,
             for [resolution, input_images] in data:
                 line = f"CUDA_VISIBLE_DEVICES={gpu}"
                 if isinstance(input_images, list) and os.path.isfile(input_images[0]):
-                    images = ''.join([" " + img for img in input_images])
+                    images = ''.join([img if ix==0 else " " + img for ix,img in enumerate(input_images)])
                     line += f" python nnunet_utils/infv2.py"
                     line += f" --path_model {path_model}"
-                    line += f" --images{images}"
+                    line += f" --images \"{images}\""
                     line += f" --seg_dir {dir_output_seg}"
                     if return_probabilities:
                         line += f" --return_probabilities"
