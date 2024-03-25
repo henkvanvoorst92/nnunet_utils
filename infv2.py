@@ -10,7 +10,7 @@ import argparse
 import numpy as np
 import torch
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
-from .utils import np2sitk
+from nnunet_utils.utils import np2sitk
 
 def init_predictor(path_model):
     #from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
@@ -75,6 +75,77 @@ def nnunetv2_predict(img ,props ,predictor, return_probabilities=False):
 
     return seg
 
+def nnunet_inference_on_dir(model_path,  # path to trained models
+                            dir_input_images,  # directory with input images
+                            dir_output_seg,  # output directory
+                            resolution,  # 3d_fullres
+                            save_probs=True,
+                            version=2,
+                            run=False,
+                            task=None
+                            ):
+    """
+    Runs an nnUNetV2 inference command using os.system on a directory of test images
+
+    :param model_path: The path to the trained model directory.
+    :param input_images: The path to the directory containing input images.
+    :param output_folder: The path to the directory where output will be saved.
+
+    see also:
+    https://github.com/DIAGNijmegen/nnUNet_v2/blob/master/documentation/how_to_use_nnunet.md
+    """
+
+    if version == 2:
+        # Construct the nnUNetV2 inference command based on your specific requirements
+        command = f"nnUNetv2_predict -i {dir_input_images}"
+        command += f"-o {dir_output_seg}"
+        command += f"-t {model_path}"
+        command += f" -c {resolution}"
+        #command += f" -d {task}"
+
+        if save_probs:
+            command += f" --save_probabilities"
+
+        if run:
+            print('Start running command')
+            print(command)
+            status = os.system(command)
+
+            if status != 0:
+                print("Error executing the command")
+            else:
+                print("Command executed successfully")
+
+    else:
+        # run the old version of nnunet
+        command = []
+        # nnUNet_plan_and_preprocess -t TaskXX_MYTASK --verify_dataset_integrity
+        cmd = f"nnUNet_plan_and_preprocess-t {task} --verify_dataset_integrity"
+        command.append(cmd)
+        if run:
+            status = os.system(cmd)
+            if status != 0:
+                print("Error executing the command")
+            else:
+                print("Command executed successfully")
+            status = os.system(cmd)
+
+        # nnUNet_predict -i INPUT_FOLDER -o OUTPUT_FOLDER -t TaskXX_MYTASK -m 3d_fullres
+        cmd = f"nnUNet_predict -i {dir_input_images}"
+        cmd += f"-o {dir_output_seg}"
+        cmd += f"-t {task}"
+        cmd += f" -m {resolution}"
+        command.append(cmd)
+        if run:
+            status = os.system(cmd)
+            if status != 0:
+                print("Error executing the command")
+            else:
+                print("Command executed successfully")
+
+    if not run:
+        return command
+
 
 def init_args():
     # Setup argparse
@@ -87,7 +158,7 @@ def init_args():
                         help='path to dir with image files (old nnUnet style) or list of image paths')
     parser.add_argument('--seg_dir', type=str,
                         default='', help='directory to store output seggmentations')
-    parser.add_argument('--return_probabilities', action='store_true'
+    parser.add_argument('--return_probabilities', action='store_true',
                         help='flags if true exports probability npz files')
 
     return parser
@@ -115,8 +186,10 @@ if __name__ == "__main__":
 
     if os.path.isdir(args.images):
         image_files = os.listdir(args.images)
-    elif isinstance(args.images) and os.path.isfile(args.images[0]):
-        image_files = args.images
+    # elif isinstance(args.images,list) and os.path.isfile(args.images[0]):
+    #     image_files = args.images
+    elif isinstance(args.images,str):
+        image_files = args.images.split(' ')
 
     if not os.path.exists(args.seg_dir):
         os.makedirs(args.seg_dir)
@@ -141,7 +214,7 @@ if __name__ == "__main__":
             #get properties of image used by nnUnet
             props = nnunetv2_get_props(img)
             #generate batch dimension (current inference goes one-by-one)
-            img_inp = np.expand_dims(sitk.GetArrayFromImage(img), 0)
+            img_inp = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float32)
             #predict segmentation channels= mask,probabilities
             seg = nnunetv2_predict(img_inp, props, predictor, return_probabilities=args.return_probabilities)
             #write the binary prediction map
