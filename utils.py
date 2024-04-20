@@ -181,6 +181,8 @@ def copy_seg_to_original_folder(nnunet_seg_folder, original_folder, addname='-CT
     # copy nnunet segmentations back to original folder
     for f in os.listdir(nnunet_seg_folder):
         ID = f.split(".")[0]
+        if '_0000' in ID:
+            ID = ID.split('_0000')[0]
         pid = os.path.join(original_folder, ID)
         if not os.path.exists(pid):
             os.makedirs(pid)
