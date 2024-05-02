@@ -13,6 +13,7 @@ def nnunet_train_shell(datasetID,
                        root: str,
                        conda_env: str,
                        gpu_res_fold_dct: dict = None, #is created with utils function assign_to_gpu
+                       start_from_checkpoint: bool = False,
                        version=2):
     """
     create shell scripts to train each fold on another device
@@ -44,8 +45,11 @@ def nnunet_train_shell(datasetID,
         # https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/setting_up_paths.md
         for gpu, data in gpu_res_fold_dct.items():
             for [resolution, fold] in data:
-                f.writelines(
-                    f'CUDA_VISIBLE_DEVICES={gpu} nnUNetv2_train {datasetID} {resolution} {fold} --npz &\n')
+                if start_from_checkpoint:
+                    f.writelines(
+                        f'CUDA_VISIBLE_DEVICES={gpu} nnUNetv2_train {datasetID} {resolution} {fold} --c --npz &\n')
+                else:
+                    f'CUDA_VISIBLE_DEVICES={gpu} nnUNetv2_train {datasetID} {resolution} {fold} --npz &\n'
 
         f.writelines("wait")
     return job_file

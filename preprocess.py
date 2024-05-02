@@ -94,6 +94,9 @@ def preprocess_data(root: str,
                     datasetID: str,  # Dataset501_XXX
                     dataset_name: str,
                     modalities: list[str],
+                    configs: list[str] = None, # ['2d', '3d_fullres', '3d_lowres'],
+                    verify_integrity=True,
+                    plan_and_preprocess='nnUNetv2_plan_and_preprocess',
                     version: [int or str or float] = 2):
     # prepares data for training
     if version >= 2:
@@ -105,7 +108,7 @@ def preprocess_data(root: str,
     d_tr = os.path.join(p_data, 'imagesTr')
     d_lbl = os.path.join(p_data, 'labelsTr')
     num_tr = img_lbl_paircount(root_images=d_tr, root_gt=d_lbl)
-    print
+
     set_env_nnunet(root, version=version)
 
     if version >= 2:
@@ -124,7 +127,15 @@ def preprocess_data(root: str,
                                     dataset_description="dataset nnUnet",
                                     overwrite_image_reader_writer="SimpleITKIO"
                                 )
-        cmd_pp = 'nnUNetv2_plan_and_preprocess -d {} --verify_dataset_integrity'.format(datano)
+
+        cmd_pp = f'{plan_and_preprocess} -d {datano}'
+        if configs is not None:
+            if isinstance(configs, list):
+                configs = ' '.join(configs)
+            cmd_pp += f' -c {configs}'
+
+        if verify_integrity:
+            cmd_pp += ' --verify_dataset_integrity'
 
     else:
         from nnunet.dataset_conversion.utils import generate_dataset_json
@@ -170,5 +181,36 @@ def create_inference_image(path_image_in, path_image_out, bounds=None):
     sitk.WriteImage(img, path_image_out)
 
 
+def plan_additional_experiment(root: str,
+                               datano: [int or str or float],  # 501
+                               datasetID: str,  # Dataset501_XXX
+                               configs: list[str] = None,  # ['2d', '3d_fullres', '3d_lowres'],
+                               verify_integrity=True,
+                               plan_and_preprocess='nnUNetv2_plan_experiment',
+                               model='nnUNetPlannerResEnc(M/L/XL)'
+                               ):
+    """
+    Plans additional experiment for non-original nnUNet models
+    """
+
+    p_data = os.path.join(root, 'nnUNet_raw', datasetID)
+
+    set_env_nnunet(root, version=2)
+
+    cmd_pp = f'{plan_and_preprocess} -d {datano}'
+    if model is not None:
+        cmd_pp += f' -pl {model}'
+
+    if configs is not None:
+        if isinstance(configs, list):
+            configs = ' '.join(configs)
+        cmd_pp += f' -c {configs}'
+
+    if verify_integrity:
+        cmd_pp += ' --verify_dataset_integrity'
+
+    os.system(cmd_pp)
+    print(cmd_pp)
+    print('finished preprocessing')
 
 
