@@ -12,7 +12,7 @@ import torch
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 from nnunet_utils.utils import np2sitk
 
-def init_predictor(path_model):
+def init_predictor_ensemble(path_model, device=torch.device('cuda', 0)):
     #from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
     # instantiate the nnUNetPredictor
     predictor = nnUNetPredictor(
@@ -20,7 +20,7 @@ def init_predictor(path_model):
         use_gaussian=True,
         use_mirroring=True,
         perform_everything_on_gpu=True,
-        device=torch.device('cuda', 0),
+        device=device,
         verbose=False,
         verbose_preprocessing=False,
         allow_tqdm=False
@@ -32,6 +32,28 @@ def init_predictor(path_model):
         checkpoint_name='checkpoint_best.pth',
     )
     return predictor
+
+def init_single_predictor(path_model, fold, modelname, device=torch.device('cuda', 0)):
+    #from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
+    # instantiate the nnUNetPredictor
+    predictor = nnUNetPredictor(
+        tile_step_size=0.5,
+        use_gaussian=True,
+        use_mirroring=True,
+        #perform_everything_on_gpu=True,
+        device=device,
+        verbose=False,
+        verbose_preprocessing=False,
+        allow_tqdm=False
+    )
+    # initializes the network architecture, loads the checkpoint
+    predictor.initialize_from_trained_model_folder(
+        path_model,
+        use_folds=([fold]),
+        checkpoint_name=modelname,
+    )
+    return predictor
+
 
 
 def nnunetv2_get_props(IMG):
@@ -51,27 +73,36 @@ def nnunetv2_get_props(IMG):
     return props
 
 
-def nnunetv2_predict(img ,props ,predictor, return_probabilities=False):
+def nnunetv2_predict(img: sitk.Image,
+                     predictor,
+                     return_probabilities=False):
     # predictor is a nnuentv2 object where inference is defined
+    # if isinstance(img ,list):
+    #     if props is None and isinstance(img ,list):
+    #         # img should then be a list of file locations
+    #         print('do')
+    #     else:
+    #         props = [nnunetv2_get_props(img) for im in img]
+    #         seg = predictor.predict_from_list_of_npy_arrays(img,
+    #                                                         None,
+    #                                                         props,
+    #                                                         None, 2, save_probabilities=False,
+    #                                                         num_processes_segmentation_export=2)
 
-    if isinstance(img ,list):
-        if props is None and isinstance(img ,list):
-            # img should then be a list of file locations
-            print('do')
-        else:
-            seg = predictor.predict_from_list_of_npy_arrays(img,
-                                                            None,
-                                                            props,
-                                                            None, 2, save_probabilities=False,
-                                                            num_processes_segmentation_export=2)
+    #elif isinstance(img _np,np.ndarray):
+        # seg = predictor.predict_single_npy_array(input_image=img, image_properties=props,
+        #                                          segmentation_previous_stage= None,
+        #                                          output_file_truncated= None,
+        #                                          save_or_return_probabilities= return_probabilities)
+    # else:
+    #     raise ValueError('input type not list or np.ndarray:' ,type(img))
 
-    elif isinstance(img ,np.ndarray):
-        seg = predictor.predict_single_npy_array(input_image=img, image_properties=props,
-                                                 segmentation_previous_stage= None,
-                                                 output_file_truncated= None,
-                                                 save_or_return_probabilities= return_probabilities)
-    else:
-        raise ValueError('input type not list or np.ndarray:' ,type(img))
+    props = nnunetv2_get_props(img)
+    img_inp = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float16)
+    seg = predictor.predict_single_npy_array(input_image=img_inp, image_properties=props,
+                                             segmentation_previous_stage= None,
+                                             output_file_truncated= None,
+                                             save_or_return_probabilities= return_probabilities)
 
     return seg
 
@@ -181,7 +212,7 @@ if __name__ == "__main__":
     print('Inference args:', args)
 
     #load the nnUnet model predictor class
-    predictor = init_predictor(args.path_model)
+    predictor = init_predictor_ensemble(args.path_model)
 
 
     if os.path.isdir(args.images):
@@ -212,11 +243,11 @@ if __name__ == "__main__":
             #read image
             img = sitk.ReadImage(file)
             #get properties of image used by nnUnet
-            props = nnunetv2_get_props(img)
-            #generate batch dimension (current inference goes one-by-one)
-            img_inp = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float32)
+            # props = nnunetv2_get_props(img)
+            # #generate batch dimension (current inference goes one-by-one)
+            # img_inp = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float32)
             #predict segmentation channels= mask,probabilities
-            seg = nnunetv2_predict(img_inp, props, predictor, return_probabilities=args.return_probabilities)
+            seg = nnunetv2_predict(img, predictor, return_probabilities=args.return_probabilities)
             #write the binary prediction map
             sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
             #write the probabilities

@@ -3,6 +3,9 @@ import os
 import shutil
 import numpy as np
 import SimpleITK as sitk
+import ast
+import json
+
 
 def np2sitk(arr: np.ndarray, original_img: sitk.SimpleITK.Image):
     img = sitk.GetImageFromArray(arr)
@@ -127,7 +130,7 @@ def gpu_distributed_inference(images,
             # skip images that are already segmented
             if seg_dir is not None:
                 ID = image_name.split('_')[0]
-                seg_path = os.path.join(image_dir, ID + '.nii.gz')
+                seg_path = os.path.join(image_path, ID + '.nii.gz')
                 if os.path.exists(seg_path):
                     continue
             img_paths.append(image_path)
@@ -198,6 +201,54 @@ def copy_seg_to_original_folder(nnunet_seg_folder, original_folder, addname='-CT
 
         shutil.copy2(f_nnunet, f_original)
     return
+
+
+
+###org utils
+def is_notebook():
+    """Check if the script is running in a Jupyter notebook."""
+    try:
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True   # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+        else:
+            return False  # Other type (?)
+    except NameError:
+        return False      # Probably standard Python interpreter
+
+def load_json(file: str):
+    with open(file, 'r') as f:
+        a = json.load(f)
+    return a
+
+
+def save_json(obj, file: str, indent: int = 4, sort_keys: bool = True) -> None:
+    with open(file, 'w') as f:
+        json.dump(obj, f, sort_keys=sort_keys, indent=indent)
+
+
+def write_list2txt(path: str, data_list: list):
+    with open(path, 'w') as file:
+        # Write each item on a new line
+        for item in data_list:
+            file.write(str(item) + '\n')
+
+
+def read_list_from_txt(path):
+    retrieved_list = []
+    # Open the text file for reading
+    with open(path, 'r') as file:
+        # Read each line from the file
+        for line in file:
+            # Strip the newline character and add to the list
+            retrieved_list.append(ast.literal_eval(line.strip()))
+    return retrieved_list
+
+def np_dice(y_true,y_pred,add=1e-6):
+	return (2*(y_true*y_pred).sum()+add)/(y_true.sum()+y_pred.sum()+add)
+
 
 #
 # def assign_folds_to_gpus(num_folds, num_gpus):
