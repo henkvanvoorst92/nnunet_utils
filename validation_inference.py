@@ -50,7 +50,7 @@ def inference_on_validation_splits(root_imgs: str,
     if sav_dir is not None:
         os.makedirs(sav_dir, exist_ok=True)
         p_df = os.path.join(sav_dir, f'{name}.xlsx')
-        dir_pred = os.path.join(sav_dir, 'pred')
+        dir_pred = os.path.join(sav_dir, 'pred',name)
         os.makedirs(dir_pred, exist_ok=True)
     else:
         dir_pred = None
