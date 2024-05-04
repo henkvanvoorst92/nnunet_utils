@@ -9,7 +9,7 @@ import ast
 import pandas as pd
 import multiprocessing as mp
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
-os.system('cd ..')
+sys.path.append('..')
 from nnunet_utils.utils import np2sitk, load_json, save_json, write_list2txt, read_list_from_txt, is_notebook, np_dice
 from nnunet_utils.infv2 import nnunetv2_predict, init_single_predictor, nnunetv2_get_props
 
