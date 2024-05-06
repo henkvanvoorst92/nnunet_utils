@@ -75,34 +75,22 @@ def nnunetv2_get_props(IMG):
 
 def nnunetv2_predict(img: sitk.Image,
                      predictor,
-                     return_probabilities=False):
+                     return_probabilities=False,
+                     use_iterator=False
+                     ):
     # predictor is a nnuentv2 object where inference is defined
-    # if isinstance(img ,list):
-    #     if props is None and isinstance(img ,list):
-    #         # img should then be a list of file locations
-    #         print('do')
-    #     else:
-    #         props = [nnunetv2_get_props(img) for im in img]
-    #         seg = predictor.predict_from_list_of_npy_arrays(img,
-    #                                                         None,
-    #                                                         props,
-    #                                                         None, 2, save_probabilities=False,
-    #                                                         num_processes_segmentation_export=2)
-
-    #elif isinstance(img _np,np.ndarray):
-        # seg = predictor.predict_single_npy_array(input_image=img, image_properties=props,
-        #                                          segmentation_previous_stage= None,
-        #                                          output_file_truncated= None,
-        #                                          save_or_return_probabilities= return_probabilities)
-    # else:
-    #     raise ValueError('input type not list or np.ndarray:' ,type(img))
-
     props = nnunetv2_get_props(img)
-    img_inp = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float16)
-    seg = predictor.predict_single_npy_array(input_image=img_inp, image_properties=props,
-                                             segmentation_previous_stage= None,
-                                             output_file_truncated= None,
-                                             save_or_return_probabilities= return_probabilities)
+    img = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float16)
+
+    if use_iterator:
+        iterator = predictor.get_data_iterator_from_raw_npy_data([img], None, [props], None, 1)
+        seg = predictor.predict_from_data_iterator(iterator, return_probabilities, 1)
+
+    else:
+        seg = predictor.predict_single_npy_array(input_image=img, image_properties=props,
+                                                 # segmentation_previous_stage= None,
+                                                 # output_file_truncated= None,
+                                                 save_or_return_probabilities=return_probabilities)
 
     return seg
 

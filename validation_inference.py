@@ -23,6 +23,7 @@ def inference_on_validation_splits(root_imgs: str,
                                    add_info: dict = {},
                                    checkpoint: str = 'checkpoint_best.pth',
                                    dev_number: int = 0,
+                                   use_img_iterator: bool=False,
                                    **kwargs
                                    ):
     # kwargs enables multiprocessing
@@ -44,6 +45,8 @@ def inference_on_validation_splits(root_imgs: str,
         checkpoint = kwargs['checkpoint']
     if 'dev_number' in kwargs:
         dev_number = kwargs['dev_number']
+    if 'use_img_iterator' in kwargs:
+        use_img_iterator = kwargs['use_img_iterator']
 
     dev = torch.device('cuda', dev_number)
 
@@ -57,13 +60,13 @@ def inference_on_validation_splits(root_imgs: str,
 
     out = []
     for fold, split in splits.items():
-        try:
-            valIDs = split['val']  # validation IDs of set fold
-            # load the split model
-            model = init_single_predictor(root_model, fold, checkpoint, device=dev)
-        except:
-            print('Model load error', root_model, fold, split)
-            continue
+        # try:
+        valIDs = split['val']  # validation IDs of set fold
+        # load the split model
+        model = init_single_predictor(root_model, fold, checkpoint, device=dev)
+        # except:
+        #     print('Model load error', root_model, fold, split)
+        #     continue
 
         for ID in tqdm(valIDs):
             # try:
@@ -73,7 +76,8 @@ def inference_on_validation_splits(root_imgs: str,
             lbl = sitk.GetArrayFromImage(sitk.ReadImage(p_lbl))
             seg = nnunetv2_predict(img,
                                    model,
-                                   return_probabilities=False)
+                                   return_probabilities=False,
+                                   use_iterator=use_img_iterator)
             dsc = np_dice(lbl, seg)
 
             row = list(add_info.values())
@@ -105,6 +109,8 @@ def init_args(args=None):
                         help='txt file with experiments defined including gpu allocation')
     parser.add_argument('--p', action='store_true',
                         help='If true runs processes in parallel using multiprocessing')
+    parser.add_argument('--img_iterator', action='store_true',
+                        help='After nnunet 4.2.0 only the image iterator works for inference')
     if is_notebook():
         print("Detected notebook environment, using default argument values.")
         return parser.parse_args([])
@@ -147,7 +153,8 @@ if __name__ == "__main__":
                'sav_dir': sav_dir,
                'add_info': add_info,
                'checkpoint': 'checkpoint_best.pth',
-               'dev_number': dev_no
+               'dev_number': dev_no,
+               'use_img_iterator': args.img_iterator
                }
         if not args.p:
             #run the file here
