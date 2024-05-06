@@ -239,19 +239,20 @@ if __name__ == "__main__":
                 continue
             elif not args.return_probabilities:
                 continue
-        try:
-            #read image
-            img = sitk.ReadImage(file)
-            #get properties of image used by nnUnet
-            # props = nnunetv2_get_props(img)
-            # #generate batch dimension (current inference goes one-by-one)
-            # img_inp = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float32)
-            #predict segmentation channels= mask,probabilities
-            seg = nnunetv2_predict(img, predictor, return_probabilities=args.return_probabilities)
-            #write the binary prediction map
-            sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
-            #write the probabilities
-            np.save(p_npy_vseg, seg[1])
-        except:
-            print('Error for:',file)
-            continue
+        #try:
+        #read image
+        img = sitk.ReadImage(file)
+        #get properties of image used by nnUnet
+        # props = nnunetv2_get_props(img)
+        # #generate batch dimension (current inference goes one-by-one)
+        # img_inp = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float32)
+        #predict segmentation channels= mask,probabilities
+        seg = nnunetv2_predict(img, predictor, return_probabilities=args.return_probabilities)
+        #write the binary prediction map
+        sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
+        #write the probabilities
+        if args.return_probabilities:
+            np.save(p_npy_vseg, seg[1][1])
+        #except:
+            # print('Error for:',file)
+            # continue
