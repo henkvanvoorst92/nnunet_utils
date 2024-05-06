@@ -66,26 +66,26 @@ def inference_on_validation_splits(root_imgs: str,
             continue
 
         for ID in tqdm(valIDs):
-            try:
-                p_img = os.path.join(root_imgs, f'{ID}_0000.nii.gz')
-                p_lbl = os.path.join(root_labels, f'{ID}.nii.gz')
-                img = sitk.ReadImage(p_img)
-                lbl = sitk.GetArrayFromImage(sitk.ReadImage(p_lbl))
-                seg = nnunetv2_predict(img,
-                                       model,
-                                       return_probabilities=False)
-                dsc = np_dice(lbl, seg)
+            # try:
+            p_img = os.path.join(root_imgs, f'{ID}_0000.nii.gz')
+            p_lbl = os.path.join(root_labels, f'{ID}.nii.gz')
+            img = sitk.ReadImage(p_img)
+            lbl = sitk.GetArrayFromImage(sitk.ReadImage(p_lbl))
+            seg = nnunetv2_predict(img,
+                                   model,
+                                   return_probabilities=False)
+            dsc = np_dice(lbl, seg)
 
-                row = list(add_info.values())
-                row.extend([name, fold, ID, dsc, p_img, p_lbl,
-                            root_model, 'checkpoint_best.pth'])
-                out.append(row)
-                if dir_pred is not None:
-                    p_seg = os.path.join(dir_pred, f'{ID}-{fold}-{name}.nii.gz')
-                    sitk.WriteImage(np2sitk(seg, img), p_seg)
-            except:
-                print('ID processing error:', ID)
-                continue
+            row = list(add_info.values())
+            row.extend([name, fold, ID, dsc, p_img, p_lbl,
+                        root_model, 'checkpoint_best.pth'])
+            out.append(row)
+            if dir_pred is not None:
+                p_seg = os.path.join(dir_pred, f'{ID}-{fold}-{name}.nii.gz')
+                sitk.WriteImage(np2sitk(seg, img), p_seg)
+            # except:
+            #     print('ID processing error:', ID)
+            #     continue
 
     cols = [*list(add_info.keys()), 'Name', 'fold', 'ID', 'DSC',
             'p_img', 'p_lbl', 'root_model', 'checkpoint']
