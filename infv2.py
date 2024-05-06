@@ -9,6 +9,7 @@ import SimpleITK as sitk
 import argparse
 import numpy as np
 import torch
+sys.path.append('..')
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 from nnunet_utils.utils import np2sitk
 
@@ -98,7 +99,7 @@ def nnunetv2_predict(img: sitk.Image,
         seg = predictor.predict_from_data_iterator(iterator, return_probabilities, 1)
 
     else:
-        seg = predictor.predict_single_npy_array(input_image=img_inp, image_properties=props,
+        seg = predictor.predict_single_npy_array(input_image=img, image_properties=props,
                                                  # segmentation_previous_stage= None,
                                                  # output_file_truncated= None,
                                                  save_or_return_probabilities=return_probabilities)

@@ -97,6 +97,7 @@ def nnunetv2_inference_shell(root: str,
         f.writelines('\n')
 
         p_infv2 = os.path.join(path_nnunet_utils,'infv2.py')
+        p_infv2 = 'infv2.py'
 
         # https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/setting_up_paths.md
         for gpu, data in gpu_dct.items():
@@ -119,7 +120,7 @@ def nnunetv2_inference_shell(root: str,
                         line += f" --save_probabilities"
 
                 f.writelines('\n')
-                f.writelines(line+' &')
+                f.writelines(line+'&')
                 f.writelines('\n')
         f.writelines("wait")
 
