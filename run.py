@@ -92,8 +92,11 @@ def nnunetv2_inference_shell(root: str,
                               root=root,
                               version=version)
 
-        f.writelines(f"export PYTHONPATH={path_nnunet_utils}:$PYTHONPATH\n")
+        #f.writelines(f"export PYTHONPATH={path_nnunet_utils}:$PYTHONPATH\n")
+        f.writelines(f"cd {path_nnunet_utils}\n")
         f.writelines('\n')
+
+        p_infv2 = os.path.join(path_nnunet_utils,'infv2.py')
 
         # https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/setting_up_paths.md
         for gpu, data in gpu_dct.items():
@@ -101,10 +104,10 @@ def nnunetv2_inference_shell(root: str,
                 line = f"CUDA_VISIBLE_DEVICES={gpu}"
                 if isinstance(input_images, list) and os.path.isfile(input_images[0]):
                     images = ''.join([img if ix==0 else " " + img for ix,img in enumerate(input_images)])
-                    line += f" python nnunet_utils/infv2.py"
+                    line += f" python {p_infv2}"
                     line += f" --path_model {path_model}"
                     line += f" --images \"{images}\""
-                    line += f" --seg_dir {dir_output_seg}"
+                    line += f" --seg_dir {dir_output_seg}\n"
                     if return_probabilities:
                         line += f" --return_probabilities"
                 elif os.path.isdir(input_images):
@@ -115,9 +118,10 @@ def nnunetv2_inference_shell(root: str,
                     if return_probabilities:
                         line += f" --save_probabilities"
 
-                f.writelines(line)
                 f.writelines('\n')
-                f.writelines("wait")
+                f.writelines(line+' &')
+                f.writelines('\n')
+        f.writelines("wait")
 
     return job_file
 

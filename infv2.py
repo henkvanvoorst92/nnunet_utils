@@ -33,7 +33,12 @@ def init_predictor_ensemble(path_model, device=torch.device('cuda', 0)):
     )
     return predictor
 
-def init_single_predictor(path_model, fold, modelname, device=torch.device('cuda', 0)):
+def init_single_predictor(path_model,
+                          fold,
+                          modelname,
+                          device=torch.device('cuda', 0),
+                          #torch_type=None
+                          ):
     #from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
     # instantiate the nnUNetPredictor
     predictor = nnUNetPredictor(
@@ -52,6 +57,10 @@ def init_single_predictor(path_model, fold, modelname, device=torch.device('cuda
         use_folds=([fold]),
         checkpoint_name=modelname,
     )
+    #
+    # if torch_type is not None:
+    #     predictor.network = predictor.network.type(torch_type)
+
     return predictor
 
 
@@ -76,18 +85,20 @@ def nnunetv2_get_props(IMG):
 def nnunetv2_predict(img: sitk.Image,
                      predictor,
                      return_probabilities=False,
-                     use_iterator=False
+                     use_iterator=True
                      ):
     # predictor is a nnuentv2 object where inference is defined
     props = nnunetv2_get_props(img)
     img = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float16)
+    if use_iterator:
+        img = img.astype(np.float32)
 
     if use_iterator:
         iterator = predictor.get_data_iterator_from_raw_npy_data([img], None, [props], None, 1)
         seg = predictor.predict_from_data_iterator(iterator, return_probabilities, 1)
 
     else:
-        seg = predictor.predict_single_npy_array(input_image=img, image_properties=props,
+        seg = predictor.predict_single_npy_array(input_image=img_inp, image_properties=props,
                                                  # segmentation_previous_stage= None,
                                                  # output_file_truncated= None,
                                                  save_or_return_probabilities=return_probabilities)

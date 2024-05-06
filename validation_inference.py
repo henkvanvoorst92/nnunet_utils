@@ -26,6 +26,7 @@ def inference_on_validation_splits(root_imgs: str,
                                    use_img_iterator: bool=False,
                                    **kwargs
                                    ):
+    print('-----Kwargs:',kwargs)
     # kwargs enables multiprocessing
     if 'root_imgs' in kwargs:
         root_imgs = kwargs['root_imgs']
@@ -64,6 +65,9 @@ def inference_on_validation_splits(root_imgs: str,
         valIDs = split['val']  # validation IDs of set fold
         # load the split model
         model = init_single_predictor(root_model, fold, checkpoint, device=dev)
+        if use_img_iterator:
+            model.network = model.network.type(torch.float32)
+
         # except:
         #     print('Model load error', root_model, fold, split)
         #     continue
@@ -78,6 +82,9 @@ def inference_on_validation_splits(root_imgs: str,
                                    model,
                                    return_probabilities=False,
                                    use_iterator=use_img_iterator)
+            if use_img_iterator:
+                seg = seg[0]
+
             dsc = np_dice(lbl, seg)
 
             row = list(add_info.values())
