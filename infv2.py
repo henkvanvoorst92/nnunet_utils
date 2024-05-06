@@ -227,10 +227,10 @@ if __name__ == "__main__":
 
     for f in image_files:
         file = os.path.join(args.images,f)
-        if '_000' in f:
-            ID = f.split('_')[0]
-        else:
-            ID = f.split('-')[0]
+        # if '_000' in f:
+        #     ID = f.split('_')[0]
+        # else:
+        #     ID = f.split('-')[0]
 
         p_vseg_out = os.path.join(args.seg_dir, '{}_vesselseg.nii.gz'.format(ID))
         p_npy_vseg = os.path.join(args.seg_dir, '{}_vesselseg'.format(ID))
