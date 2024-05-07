@@ -141,7 +141,7 @@ if __name__ == "__main__":
     sav_dir = os.path.join(root_nnunet, 'validation_inference')
 
     tasks_kwargs = []
-    for datano, datasetID, mod, plan, name, dev_no, root_images in exps:
+    for datano, datasetID, mod, plan, name, dev_no, other_image_folder in exps:
         p_split = os.path.join(root_nnunet, 'nnUNet_preprocessed', datasetID, 'splits_final.json')
         splits = load_json(p_split)
 
