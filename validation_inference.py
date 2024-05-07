@@ -112,8 +112,8 @@ def init_args(args=None):
 
     parser.add_argument('--root', type=str, default='',
                         help='nnunet directory root')
-    parser.add_argument('--root_images', type=str, default=None,
-                        help='if other data should be used define it here')
+    # parser.add_argument('--root_images', type=str, default=None,
+    #                     help='if other data should be used define it here')
     parser.add_argument('--exp', type=str, default='',
                         help='txt file with experiments defined including gpu allocation')
     parser.add_argument('--p', action='store_true',
