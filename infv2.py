@@ -237,8 +237,6 @@ if __name__ == "__main__":
         if os.path.exists(p_vseg_out):
             if args.return_probabilities and os.path.exists(p_npy_vseg + '.npy'):
                 continue
-            elif not args.return_probabilities:
-                continue
         #try:
         #read image
         img = sitk.ReadImage(file)
@@ -249,6 +247,7 @@ if __name__ == "__main__":
         #predict segmentation channels= mask,probabilities
         seg = nnunetv2_predict(img, predictor, return_probabilities=args.return_probabilities)
         #write the binary prediction map
+        print(f'Saving {ID}',p_vseg_out)
         sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
         #write the probabilities
         if args.return_probabilities:
