@@ -242,6 +242,8 @@ def read_list_from_txt(path):
     with open(path, 'r') as file:
         # Read each line from the file
         for line in file:
+            if '\\' in line:
+                continue
             # Strip the newline character and add to the list
             retrieved_list.append(ast.literal_eval(line.strip()))
     return retrieved_list

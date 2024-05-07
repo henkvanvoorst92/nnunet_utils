@@ -112,6 +112,8 @@ def init_args(args=None):
 
     parser.add_argument('--root', type=str, default='',
                         help='nnunet directory root')
+    parser.add_argument('--root_images', type=str, default=None,
+                        help='if other data should be used define it here')
     parser.add_argument('--exp', type=str, default='',
                         help='txt file with experiments defined including gpu allocation')
     parser.add_argument('--p', action='store_true',
@@ -139,12 +141,16 @@ if __name__ == "__main__":
     sav_dir = os.path.join(root_nnunet, 'validation_inference')
 
     tasks_kwargs = []
-    for datano, datasetID, mod, plan, name, dev_no in exps:
+    for datano, datasetID, mod, plan, name, dev_no, root_images in exps:
         p_split = os.path.join(root_nnunet, 'nnUNet_preprocessed', datasetID, 'splits_final.json')
         splits = load_json(p_split)
 
         root_model = os.path.join(root_nnunet, 'nnUNet_trained_models', datasetID, plan)
-        root_imgs = os.path.join(root_nnunet, 'nnUNet_raw', datasetID, 'imagesTr')
+        if len(other_image_folder)>3:
+            print('Using other inference images:', other_image_folder)
+            root_imgs = os.path.join(root_nnunet, 'nnUNet_raw', datasetID, 'imagesTr')
+        else:
+            root_imgs = os.path.join(root_nnunet, 'nnUNet_raw', datasetID, 'imagesTr')
         root_lbls = os.path.join(root_nnunet, 'nnUNet_raw', datasetID, 'labelsTr')
 
         add_info = {'datano': datano,
