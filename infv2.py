@@ -237,9 +237,13 @@ if __name__ == "__main__":
 
         p_vseg_out = os.path.join(args.seg_dir, '{}_vesselseg.nii.gz'.format(ID))
         p_npy_vseg = os.path.join(args.seg_dir, '{}_vesselseg'.format(ID))
+        #skip if segmentatons already exist
         if os.path.exists(p_vseg_out):
             if args.return_probabilities and os.path.exists(p_npy_vseg + '.npy'):
                 continue
+            elif not args.return_probabilities:
+                continue
+
         #try:
         #read image
         img = sitk.ReadImage(file)
