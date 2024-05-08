@@ -273,7 +273,7 @@ if __name__ == "__main__":
             print('Running 4D', ID, img.GetSize())
             seg_out = []
             prob_out = []
-            for i in range(img.GetSize()):
+            for i in range(img.GetSize()[-1]):
                 seg = nnunetv2_predict(img[:,:,:,i], predictor,
                                        return_probabilities=args.return_probabilities,
                                        use_iterator=False)
