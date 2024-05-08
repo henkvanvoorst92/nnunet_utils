@@ -233,12 +233,12 @@ if __name__ == "__main__":
     for f in image_files:
         file = os.path.join(args.images,f)
 
-        f = f.replace('.nii.gz','')
+
         if os.sep in f:
             f = f.split(os.sep)[-1]
         if '_0000' in f:
             f = f.replace('_0000','')
-
+        f = f.replace('.nii.gz', '')
         #ID,addname = f.split('-')
         ID = f
 

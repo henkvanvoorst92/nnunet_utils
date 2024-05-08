@@ -108,7 +108,7 @@ def nnunetv2_inference_shell(root: str,
                     line += f" python {p_infv2}"
                     line += f" --path_model {path_model}"
                     line += f" --images \"{images}\""
-                    line += f" --seg_dir {dir_output_seg}\n"
+                    line += f" --seg_dir {dir_output_seg}"
                     if return_probabilities:
                         line += f" --return_probabilities"
                 elif os.path.isdir(input_images):
