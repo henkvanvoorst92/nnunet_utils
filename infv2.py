@@ -261,12 +261,15 @@ if __name__ == "__main__":
             seg = nnunetv2_predict(img, predictor,
                                    return_probabilities=args.return_probabilities,
                                    use_iterator=False)
-            #write the binary prediction map
-            print(f'Saving {ID}',p_vseg_out)
-            sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
+
+            print(f'Saving {ID}', p_vseg_out)
             #write the probabilities
             if args.return_probabilities:
+                # write the binary prediction map
+                sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
                 np.save(p_npy_vseg, seg[1][1])
+            else:
+                sitk.WriteImage(np2sitk(seg, img), p_vseg_out)
 
         #for CTP series
         elif len(img.GetSize())==4:
@@ -277,9 +280,12 @@ if __name__ == "__main__":
                 seg = nnunetv2_predict(img[:,:,:,i], predictor,
                                        return_probabilities=args.return_probabilities,
                                        use_iterator=False)
-                seg_out.append(np2sitk(seg[0],img[:,:,:,i]))
+                
                 if args.return_probabilities:
+                    seg_out.append(np2sitk(seg[0], img[:, :, :, i]))
                     prob_out.append(seg[1][1])
+                else:
+                    seg_out.append(np2sitk(seg, img[:, :, :, i]))
 
             seg_out = sitk.JoinSeries(seg_out)
             print(f'Saving {ID}', p_vseg_out)
