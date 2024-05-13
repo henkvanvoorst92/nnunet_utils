@@ -191,6 +191,8 @@ def init_args():
                         default='', help='directory to store output seggmentations')
     parser.add_argument('--return_probabilities', action='store_true',
                         help='flags if true exports probability npz files')
+    parser.add_argument('--use_iterator', action='store_true',
+                        help='for ResNet the iterator is required somehow')
 
     return parser
 
@@ -260,7 +262,7 @@ if __name__ == "__main__":
             print('Running 3D', ID, img.GetSize())
             seg = nnunetv2_predict(img, predictor,
                                    return_probabilities=args.return_probabilities,
-                                   use_iterator=False)
+                                   use_iterator=args.use_iterator)
 
             print(f'Saving {ID}', p_vseg_out)
             #write the probabilities
@@ -279,8 +281,8 @@ if __name__ == "__main__":
             for i in range(img.GetSize()[-1]):
                 seg = nnunetv2_predict(img[:,:,:,i], predictor,
                                        return_probabilities=args.return_probabilities,
-                                       use_iterator=False)
-                
+                                       use_iterator=args.use_iterator)
+
                 if args.return_probabilities:
                     seg_out.append(np2sitk(seg[0], img[:, :, :, i]))
                     prob_out.append(seg[1][1])
