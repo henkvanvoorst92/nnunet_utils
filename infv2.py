@@ -268,10 +268,20 @@ if __name__ == "__main__":
             #write the probabilities
             if args.return_probabilities:
                 # write the binary prediction map
-                sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
-                np.save(p_npy_vseg, seg[1][1])
+                if args.use_iterator:
+                    probs = seg[0][1][1]
+                    segmentation = seg[0][0]
+                else:
+                    probs = seg[1][1]
+                    segmentation = seg[0]
+                sitk.WriteImage(np2sitk(segmentation, img), p_vseg_out)
+                np.save(p_npy_vseg, probs)
+
             else:
-                sitk.WriteImage(np2sitk(seg, img), p_vseg_out)
+                if args.use_iterator:
+                    sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
+                else:
+                    sitk.WriteImage(np2sitk(seg, img), p_vseg_out)
 
         #for CTP series
         elif len(img.GetSize())==4:
@@ -284,8 +294,14 @@ if __name__ == "__main__":
                                        use_iterator=args.use_iterator)
 
                 if args.return_probabilities:
-                    seg_out.append(np2sitk(seg[0], img[:, :, :, i]))
-                    prob_out.append(seg[1][1])
+                    if args.use_iterator:
+                        probs = seg[0][1][1]
+                        segmentation = seg[0][0]
+                    else:
+                        probs = seg[1][1]
+                        segmentation = seg[0]
+                    seg_out.append(np2sitk(segmentation, img[:, :, :, i]))
+                    prob_out.append(probs)
                 else:
                     seg_out.append(np2sitk(seg, img[:, :, :, i]))
 
