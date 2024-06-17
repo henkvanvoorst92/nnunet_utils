@@ -116,7 +116,7 @@ def preprocess_data(root: str,
         generate_dataset_json.generate_dataset_json(
                                     output_folder=p_data,
                                     num_training_cases=num_tr,
-                                    channel_names={m: str(c) for c, m in enumerate(modalities)},  # 'synMRA'
+                                    channel_names={str(c):m for c, m in enumerate(modalities)},  # 'synMRA'
                                     labels={'background': 0, 'foreground': 1},
                                     file_ending=".nii.gz",
                                     dataset_name=dataset_name,

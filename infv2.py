@@ -83,26 +83,31 @@ def nnunetv2_get_props(IMG):
     return props
 
 
-def nnunetv2_predict(img: sitk.Image,
+def nnunetv2_predict(img: sitk.Image or list,
                      predictor,
                      return_probabilities=False,
                      use_iterator=False
                      ):
     # predictor is a nnuentv2 object where inference is defined
-    props = nnunetv2_get_props(img)
-    img = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float16)
-    if use_iterator:
-        img = img.astype(np.float32)
 
-    if use_iterator:
-        iterator = predictor.get_data_iterator_from_raw_npy_data([img], None, [props], None, 1)
-        seg = predictor.predict_from_data_iterator(iterator, return_probabilities, 1)
+    if isinstance(img, sitk.Image):
+        props = nnunetv2_get_props(img)
+        img = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float16)
+        if use_iterator:
+            img = img.astype(np.float32)
 
+        if use_iterator:
+            iterator = predictor.get_data_iterator_from_raw_npy_data([img], None, [props], None, 1)
+            seg = predictor.predict_from_data_iterator(iterator, return_probabilities, 1)
+
+        else:
+            seg = predictor.predict_single_npy_array(input_image=img, image_properties=props,
+                                                     # segmentation_previous_stage= None,
+                                                     # output_file_truncated= None,
+                                                     save_or_return_probabilities=return_probabilities)
     else:
-        seg = predictor.predict_single_npy_array(input_image=img, image_properties=props,
-                                                 # segmentation_previous_stage= None,
-                                                 # output_file_truncated= None,
-                                                 save_or_return_probabilities=return_probabilities)
+        #multichannel input requires sligthly different processing --> channelwise stacking
+        print('problem')
 
     return seg
 
@@ -177,6 +182,40 @@ def nnunet_inference_on_dir(model_path,  # path to trained models
     if not run:
         return command
 
+def get_ID_image_dict(inp):
+    """
+    inp : either a list of files or a directory
+          files or files in directory should have .nii.gz as extension
+
+    returns: dictionary with ID: list of image files
+    """
+    if isinstance(inp,str):
+        inp = os.listdir(inp)
+
+    #Identify unique IDs
+    IDs = [(os.path.dirname(f),os.path.basename(f).replace('_0000.nii.gz','')) for f in inp if '_0000' in os.path.basename(f) ]
+    print(len(IDs), 'IDs available')
+    #identify available channels
+    channels = list(set([f.replace('.nii.gz', '').split('_')[-1] for f in inp]))
+    sorted_channels = sorted(channels, key=int)
+
+    dct_out = {}
+    for root,ID in IDs:
+        missing_chan = False
+        image_files = []
+        for channel in sorted_channels:
+            file = os.path.join(root,f'{ID}_{channel}.nii.gz')
+            if not os.path.exists(file):
+                missing_chan = True
+            image_files.append(file)
+        if missing_chan:
+            print(f'----- Channel missing skipping ID {ID} -------')
+            continue
+        dct_out[ID] = image_files
+
+    return dct_out
+
+
 
 def init_args():
     # Setup argparse
@@ -193,6 +232,8 @@ def init_args():
                         help='flags if true exports probability npz files')
     parser.add_argument('--use_iterator', action='store_true',
                         help='for ResNet the iterator is required somehow')
+    parser.add_argument('--addname', type=str, default='_vesselseg',
+                        help='additional naming for output segmentation and probability files')
 
     return parser
 
@@ -216,14 +257,12 @@ if __name__ == "__main__":
     #load the nnUnet model predictor class
     predictor = init_predictor_ensemble(args.path_model)
 
-
+    #either a directory with images or a list of images can be used as input
+    #should both be transformed to list of image paths
     if os.path.isdir(args.images):
-        image_files = os.listdir(args.images)
-    # elif isinstance(args.images,list) and os.path.isfile(args.images[0]):
-    #     image_files = args.images
+        image_files = [os.path.join(args.images, f) for f in os.listdir(args.images)]
     elif isinstance(args.images,str):
         image_files = args.images.split(' ')
-    #
     # #you can also pass a directory with images to segment
     # if len(image_files)==1 and os.path.isdir(image_files):
     #     image_files = os.listdir(image_files)
@@ -231,21 +270,12 @@ if __name__ == "__main__":
     if not os.path.exists(args.seg_dir):
         os.makedirs(args.seg_dir)
 
+    ID_images_dct = get_ID_image_dict(image_files)
     #think of a way for multi channel input --> now only single image inference
-    for f in image_files:
-        file = os.path.join(args.images,f)
+    for ID,files in ID_images_dct.items():
 
-
-        if os.sep in f:
-            f = f.split(os.sep)[-1]
-        if '_0000' in f:
-            f = f.replace('_0000','')
-        f = f.replace('.nii.gz', '')
-        #ID,addname = f.split('-')
-        ID = f
-
-        p_vseg_out = os.path.join(args.seg_dir, f'{ID}_vesselseg.nii.gz')
-        p_npy_vseg = os.path.join(args.seg_dir, f'{ID}_vesselseg')
+        p_vseg_out = os.path.join(args.seg_dir, f'{ID}{args.addname}.nii.gz')
+        p_npy_vseg = os.path.join(args.seg_dir, f'{ID}{args.addname}.')
         #skip if segmentatons already exist
         if os.path.exists(p_vseg_out):
             if args.return_probabilities and os.path.exists(p_npy_vseg + '.npy'):
@@ -255,8 +285,8 @@ if __name__ == "__main__":
 
         #try:
         #read image
-        img = sitk.ReadImage(file)
 
+        img = sitk.ReadImage(files[0])
         #for standard 3D volumes
         if len(img.GetSize())==3:
             print('Running 3D', ID, img.GetSize())
