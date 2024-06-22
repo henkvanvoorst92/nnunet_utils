@@ -93,21 +93,21 @@ def nnunetv2_predict(img: sitk.Image or list,
     if isinstance(img, sitk.Image):
         props = nnunetv2_get_props(img)
         img = np.expand_dims(sitk.GetArrayFromImage(img), 0).astype(np.float16)
-        if use_iterator:
-            img = img.astype(np.float32)
+    else: #for multichannel
+        props = nnunetv2_get_props(img[0])
+        img = np.vstack([np.expand_dims(sitk.GetArrayFromImage(im), 0).astype(np.float16) for im in img])
 
-        if use_iterator:
-            iterator = predictor.get_data_iterator_from_raw_npy_data([img], None, [props], None, 1)
-            seg = predictor.predict_from_data_iterator(iterator, return_probabilities, 1)
+    if use_iterator:
+        img = img.astype(np.float32)
+        #this is not right you need to give a data iterators
+        iterator = predictor.get_data_iterator_from_raw_npy_data([img], None, [props], None, 1)
+        seg = predictor.predict_from_data_iterator(iterator, return_probabilities, 1)
 
-        else:
-            seg = predictor.predict_single_npy_array(input_image=img, image_properties=props,
-                                                     # segmentation_previous_stage= None,
-                                                     # output_file_truncated= None,
-                                                     save_or_return_probabilities=return_probabilities)
     else:
-        #multichannel input requires sligthly different processing --> channelwise stacking
-        print('problem')
+        seg = predictor.predict_single_npy_array(input_image=img, image_properties=props,
+                                                 # segmentation_previous_stage= None,
+                                                 # output_file_truncated= None,
+                                                 save_or_return_probabilities=return_probabilities)
 
     return seg
 
@@ -230,8 +230,12 @@ def init_args():
                         default='', help='directory to store output seggmentations')
     parser.add_argument('--return_probabilities', action='store_true',
                         help='flags if true exports probability npz files')
+    #required for processing resnet models --> something is wrong with this
     parser.add_argument('--use_iterator', action='store_true',
                         help='for ResNet the iterator is required somehow')
+    #required for inference on multichannel inputs --> does not work for 4D
+    parser.add_argument('--predict_from_files', action='store_true',
+                        help='automates loading and analyzing multiple 3D images using files as inputs')
     parser.add_argument('--addname', type=str, default='_vesselseg',
                         help='additional naming for output segmentation and probability files')
 
@@ -271,77 +275,92 @@ if __name__ == "__main__":
         os.makedirs(args.seg_dir)
 
     ID_images_dct = get_ID_image_dict(image_files)
-    #think of a way for multi channel input --> now only single image inference
-    for ID,files in ID_images_dct.items():
 
-        p_vseg_out = os.path.join(args.seg_dir, f'{ID}{args.addname}.nii.gz')
-        p_npy_vseg = os.path.join(args.seg_dir, f'{ID}{args.addname}.')
-        #skip if segmentatons already exist
-        if os.path.exists(p_vseg_out):
-            if args.return_probabilities and os.path.exists(p_npy_vseg + '.npy'):
-                continue
-            elif not args.return_probabilities:
-                continue
+    if args.predict_from_files:
+        file_inputs = []
+        seg_files = []
+        for ID,files in ID_images_dct.items():
+            file_inputs.append(files)
+            seg_files.append(os.path.join(args.seg_dir,f'{ID}{args.addname}.nii.gz'))
 
-        #try:
-        #read image
+        predictor.predict_from_files(file_inputs,
+                                     args.seg_dir,
+                                     save_probabilities=args.return_probabilities,
+                                     overwrite=False,
+                                     num_processes_preprocessing=2,
+                                     num_processes_segmentation_export=2,
+                                     folder_with_segs_from_prev_stage=None,
+                                     num_parts=1, part_id=0)
 
-        img = sitk.ReadImage(files[0])
-        #for standard 3D volumes
-        if len(img.GetSize())==3:
-            print('Running 3D', ID, img.GetSize())
-            seg = nnunetv2_predict(img, predictor,
-                                   return_probabilities=args.return_probabilities,
-                                   use_iterator=args.use_iterator)
+    else:
+        #think of a way for multi channel input --> now only single image inference
+        for ID,files in ID_images_dct.items():
 
-            print(f'Saving {ID}', p_vseg_out)
-            #write the probabilities
-            if args.return_probabilities:
-                # write the binary prediction map
-                if args.use_iterator:
-                    probs = seg[0][1][1]
-                    segmentation = seg[0][0]
-                else:
-                    probs = seg[1][1]
-                    segmentation = seg[0]
-                sitk.WriteImage(np2sitk(segmentation, img), p_vseg_out)
-                np.save(p_npy_vseg, probs)
+            p_vseg_out = os.path.join(args.seg_dir, f'{ID}{args.addname}.nii.gz')
+            p_npy_vseg = os.path.join(args.seg_dir, f'{ID}{args.addname}.')
+            #skip if segmentatons already exist
+            if os.path.exists(p_vseg_out):
+                if args.return_probabilities and os.path.exists(p_npy_vseg + '.npy'):
+                    continue
+                elif not args.return_probabilities:
+                    continue
 
-            else:
-                if args.use_iterator:
-                    sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
-                else:
-                    sitk.WriteImage(np2sitk(seg, img), p_vseg_out)
-
-        #for CTP series
-        elif len(img.GetSize())==4:
-            print('Running 4D', ID, img.GetSize())
-            seg_out = []
-            prob_out = []
-            for i in range(img.GetSize()[-1]):
-                seg = nnunetv2_predict(img[:,:,:,i], predictor,
+            img = [sitk.ReadImage(f) for f in files]
+            #for standard 3D volumes
+            if len(img[0].GetSize())==3:
+                print('Running 3D', ID, img[0].GetSize())
+                seg = nnunetv2_predict(img, predictor,
                                        return_probabilities=args.return_probabilities,
                                        use_iterator=args.use_iterator)
 
+                print(f'Saving {ID}', p_vseg_out)
+                #write the probabilities
                 if args.return_probabilities:
+                    # write the binary prediction map
                     if args.use_iterator:
                         probs = seg[0][1][1]
                         segmentation = seg[0][0]
                     else:
                         probs = seg[1][1]
                         segmentation = seg[0]
-                    seg_out.append(np2sitk(segmentation, img[:, :, :, i]))
-                    prob_out.append(probs)
+                    sitk.WriteImage(np2sitk(segmentation, img), p_vseg_out)
+                    np.save(p_npy_vseg, probs)
+
                 else:
-                    seg_out.append(np2sitk(seg, img[:, :, :, i]))
+                    if args.use_iterator:
+                        sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
+                    else:
+                        sitk.WriteImage(np2sitk(seg, img), p_vseg_out)
 
-            seg_out = sitk.JoinSeries(seg_out)
-            print(f'Saving {ID}', p_vseg_out)
-            sitk.WriteImage(seg_out, p_vseg_out)
+            #for CTP series
+            elif len(img[0].GetSize())==4:
+                print('Running 4D', ID, img[0].GetSize())
+                seg_out = []
+                prob_out = []
+                for i in range(img.GetSize()[-1]):
+                    seg = nnunetv2_predict(img[:,:,:,i], predictor,
+                                           return_probabilities=args.return_probabilities,
+                                           use_iterator=args.use_iterator)
 
-            if args.return_probabilities:
-                prob_out = np.stack(prob_out)
-                np.save(p_npy_vseg,prob_out)
+                    if args.return_probabilities:
+                        if args.use_iterator:
+                            probs = seg[0][1][1]
+                            segmentation = seg[0][0]
+                        else:
+                            probs = seg[1][1]
+                            segmentation = seg[0]
+                        seg_out.append(np2sitk(segmentation, img[:, :, :, i]))
+                        prob_out.append(probs)
+                    else:
+                        seg_out.append(np2sitk(seg, img[:, :, :, i]))
+
+                seg_out = sitk.JoinSeries(seg_out)
+                print(f'Saving {ID}', p_vseg_out)
+                sitk.WriteImage(seg_out, p_vseg_out)
+
+                if args.return_probabilities:
+                    prob_out = np.stack(prob_out)
+                    np.save(p_npy_vseg,prob_out)
 
         #except:
             # print('Error for:',file)
