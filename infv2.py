@@ -189,15 +189,24 @@ def get_ID_image_dict(inp):
 
     returns: dictionary with ID: list of image files
     """
-    if isinstance(inp,str):
+
+    if isinstance(inp,list):
+        inp = inp
+    elif os.path.isdir(inp):
         inp = os.listdir(inp)
 
     #Identify unique IDs
-    IDs = [(os.path.dirname(f),os.path.basename(f).replace('_0000.nii.gz','')) for f in inp if '_0000' in os.path.basename(f) ]
+    channels = list(set([os.path.basename(f).replace('.nii.gz', '').split('_')[-1] for f in inp]))
+    print('channels:', channels)
+    sorted_channels = sorted(channels, key=int)
+
+    for ch in sorted_channels:
+        IDs = [(os.path.dirname(f),os.path.basename(f).replace(f'_{ch}.nii.gz','')) for f in inp if f'_{ch}' in os.path.basename(f)]
+        if len(IDs)>0:
+            break
     print(len(IDs), 'IDs available')
     #identify available channels
-    channels = list(set([f.replace('.nii.gz', '').split('_')[-1] for f in inp]))
-    sorted_channels = sorted(channels, key=int)
+
 
     dct_out = {}
     for root,ID in IDs:
