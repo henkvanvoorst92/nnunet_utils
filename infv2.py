@@ -197,8 +197,8 @@ def get_ID_image_dict(inp):
 
     #Identify unique IDs
     channels = list(set([os.path.basename(f).replace('.nii.gz', '').split('_')[-1] for f in inp]))
-    print('channels:', channels)
     sorted_channels = sorted(channels, key=int)
+    print('channels:', sorted_channels)
 
     for ch in sorted_channels:
         IDs = [(os.path.dirname(f),os.path.basename(f).replace(f'_{ch}.nii.gz','')) for f in inp if f'_{ch}' in os.path.basename(f)]
