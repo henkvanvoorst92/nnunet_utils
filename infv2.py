@@ -36,7 +36,7 @@ def init_predictor_ensemble(path_model, device=torch.device('cuda', 0)):
 
 def init_single_predictor(path_model,
                           fold,
-                          modelname,
+                          checkpoint_name,
                           device=torch.device('cuda', 0),
                           #torch_type=None
                           ):
@@ -56,7 +56,7 @@ def init_single_predictor(path_model,
     predictor.initialize_from_trained_model_folder(
         path_model,
         use_folds=([fold]),
-        checkpoint_name=modelname,
+        checkpoint_name=checkpoint_name,
     )
     #
     # if torch_type is not None:
@@ -245,7 +245,9 @@ def init_args():
     #required for inference on multichannel inputs --> does not work for 4D
     parser.add_argument('--predict_from_files', action='store_true',
                         help='automates loading and analyzing multiple 3D images using files as inputs')
-    parser.add_argument('--addname', type=str, default='_vesselseg',
+    parser.add_argument('--single_fold', default=None,
+                        help='if single fold is a number or all, only one model is used for inference else an ensemble of all models is used')
+    parser.add_argument('--addname', type=str, default='',
                         help='additional naming for output segmentation and probability files')
 
     return parser
@@ -268,7 +270,15 @@ if __name__ == "__main__":
     print('Inference args:', args)
 
     #load the nnUnet model predictor class
-    predictor = init_predictor_ensemble(args.path_model)
+    if args.single_fold is None:
+        #use the ensemble of all 5 folds for predictions
+        predictor = init_predictor_ensemble(args.path_model)
+    else:
+        #use a single model
+        predictor = init_single_predictor(args.path_model,
+                                          fold=args.single_fold,
+                                          checkpoint_name='checkpoint_final.pth'
+                                          )
 
     #either a directory with images or a list of images can be used as input
     #should both be transformed to list of image paths

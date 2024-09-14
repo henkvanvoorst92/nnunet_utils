@@ -149,9 +149,10 @@ def preprocess_data(root: str,
                               dataset_description="dataset nnUnet"
                               )
         cmd_pp = 'nnUNet_plan_and_preprocess -t {}'.format(datano)  # --verify_dataset_integrity
-
+    print(cmd_pp)
     os.system(cmd_pp)
     print('finished preprocessing')
+
 
 def create_inference_data_from_folder(path_folder_in, path_folder_out, bounds=None):
     for file in os.listdir(path_folder_in):
