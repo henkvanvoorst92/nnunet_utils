@@ -349,7 +349,7 @@ if __name__ == "__main__":
                     if args.use_iterator:
                         sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
                     else:
-                        sitk.WriteImage(np2sitk(seg, img), p_vseg_out)
+                        sitk.WriteImage(np2sitk(seg[0], img), p_vseg_out)
 
             #for CTP series
             elif len(img[0].GetSize())==4:

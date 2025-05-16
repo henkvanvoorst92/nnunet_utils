@@ -252,6 +252,39 @@ def np_dice(y_true,y_pred,add=1e-6):
 	return (2*(y_true*y_pred).sum()+add)/(y_true.sum()+y_pred.sum()+add)
 
 
+def adapt_nnUNetTrainer(dir_model):
+    """
+    If nnUnet models were trained with a non-standard or custom nnunetv2 trainer (MynnUnetTrainer for example)
+    this information is stored inside the .pth models. Due to this feat it is not possible to do inference
+    using standard nnunetv2 functions without this dedicated trainer class available.
+    This function just changes the name of the trainer classes in .pth models implicitly assuming
+    that the network has the same architecture as the original nnUNetTrainer given the .json information files
+
+    Inputs:
+    dir_model: directory with subdirs fold_0, fold_1, etc
+
+    Changes the name of all of these models to nnUNetTrainer
+    also removes validation folder results and trainer log folders
+
+    """
+
+    for d in os.listdir(dir_model):
+        p = os.path.join(dir_model, d)
+        if not os.path.isdir(p):
+            continue
+        for f in os.listdir(p):
+            file = os.path.join(p, f)
+            if ('training_log' in f or 'trainer_log' in f) and os.path.isfile(file):
+                os.remove(file)
+            if f == 'validation':
+                # remove this as it contains validation results
+                shutil.rmtree(file)
+            if f.endswith('.pth'):
+                checkpoint = torch.load(file,
+                                        map_location=torch.device('cpu'))
+                checkpoint['trainer_name'] = 'nnUNetTrainer'
+                torch.save(checkpoint, file)
+
 #
 # def assign_folds_to_gpus(num_folds, num_gpus):
 #     """

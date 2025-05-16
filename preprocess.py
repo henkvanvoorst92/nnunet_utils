@@ -95,6 +95,7 @@ def preprocess_data(root: str,
                     dataset_name: str,
                     modalities: list[str],
                     configs: list[str] = None, # ['2d', '3d_fullres', '3d_lowres'],
+                    planner:str =None, # 'nnUNetPlannerResEnc(M/L/XL)' if you do not wish to use default nnunet
                     verify_integrity=True,
                     plan_and_preprocess='nnUNetv2_plan_and_preprocess',
                     version: [int or str or float] = 2):
@@ -129,6 +130,9 @@ def preprocess_data(root: str,
                                 )
 
         cmd_pp = f'{plan_and_preprocess} -d {datano}'
+        if planner is not None:
+            cmd_pp += f' -pl {planner}'
+
         if configs is not None:
             if isinstance(configs, list):
                 configs = ' '.join(configs)
