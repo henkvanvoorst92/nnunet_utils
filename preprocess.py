@@ -98,6 +98,7 @@ def preprocess_data(root: str,
                     planner:str =None, # 'nnUNetPlannerResEnc(M/L/XL)' if you do not wish to use default nnunet
                     verify_integrity=True,
                     plan_and_preprocess='nnUNetv2_plan_and_preprocess',
+                    labels= {'background': 0, 'foreground': 1},
                     version: [int or str or float] = 2):
     # prepares data for training
     if version >= 2:
@@ -118,7 +119,7 @@ def preprocess_data(root: str,
                                     output_folder=p_data,
                                     num_training_cases=num_tr,
                                     channel_names={str(c):m for c, m in enumerate(modalities)},  # 'synMRA'
-                                    labels={'background': 0, 'foreground': 1},
+                                    labels=labels,
                                     file_ending=".nii.gz",
                                     dataset_name=dataset_name,
                                     imagesTr_dir=d_tr,
@@ -147,7 +148,7 @@ def preprocess_data(root: str,
                               imagesTr_dir=d_tr,
                               imagesTs_dir=None,
                               modalities=(modalities),  # 'synMRA'
-                              labels={0: ' background', 1: 'foreground'},
+                              labels=labels,
                               dataset_name=dataset_name,
                               license='hands off!',
                               dataset_description="dataset nnUnet"
