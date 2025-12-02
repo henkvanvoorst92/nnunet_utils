@@ -5,6 +5,7 @@ import SimpleITK as sitk
 import nnunetv2
 import shutil
 import random
+import json
 
 from .utils import set_env_nnunet, write_envlines_nnunet
 
