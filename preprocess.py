@@ -221,3 +221,24 @@ def plan_additional_experiment(root: str,
     print('finished preprocessing')
 
 
+def run_dataset_preprocess(root,
+                           datano,
+                           project_name,
+                           labels,
+                           configs=['3d_fullres'],
+                           modalities=['CT']):
+
+    datasetID = 'Dataset{}_{}'.format(datano, project_name)
+    print(datasetID)
+    p_dir = os.path.join(root,'nnUNet_raw',datasetID)
+    os.path.exists(p_dir)
+
+    preprocess_data(root,
+                    datano=datano,
+                    datasetID=datasetID, #or task name in old version
+                    dataset_name=project_name,
+                    configs = configs,
+                    labels= labels,
+                    verify_integrity=True, #should be false for 4D data
+                    modalities=modalities #should be a list representing each input channel --> important: should include MR or CT
+                   )
