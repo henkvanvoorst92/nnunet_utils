@@ -4,6 +4,7 @@ import numpy as np
 import SimpleITK as sitk
 import nnunetv2
 import shutil
+import random
 
 from .utils import set_env_nnunet, write_envlines_nnunet
 
@@ -242,3 +243,27 @@ def run_dataset_preprocess(root,
                     verify_integrity=True, #should be false for 4D data
                     modalities=modalities #should be a list representing each input channel --> important: should include MR or CT
                    )
+
+
+def make_nfold_splits(id_list, n_folds=3, seed=42, out_dir=None):
+    random.seed(seed)
+    ids = list(id_list)
+    random.shuffle(ids)
+    n = len(ids)
+    fold_size = n // n_folds
+
+    splits = []
+    for i in range(3):
+        start = i * fold_size
+        end = (i + 1) * fold_size if i < 2 else n
+        val = ids[start:end]
+        train = ids[:start] + ids[end:]
+        splits.append({"train": train, "val": val})
+
+    if out_dir is not None:
+        out_file = os.path.join(out_dir, 'splits_final.json')
+        with open(out_file, "w") as f:
+            json.dump(splits, f, indent=2)
+
+    return splits
+
